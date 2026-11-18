@@ -748,7 +748,10 @@ body.pen .dock{display:none}
 .pb-x{display:flex;flex-direction:column;gap:4px}
 .penbar .pb-x button{width:40px;height:36px;border-radius:10px;color:var(--ink)}
 .penbar .pb-x svg{width:20px;height:20px}
-.pentop{position:fixed;z-index:46;top:14px;left:50%;transform:translateX(-50%)}
+.pentop{position:fixed;z-index:46;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:max(230px,calc(100vw - 660px))}
+.pentop[hidden]{display:none}
+.pentop #penFast{padding:0 16px 0 14px;gap:10px;white-space:nowrap}
+.pentop #penFast[aria-pressed=true]{background:var(--ink);color:#fff}
 .pentop button{display:flex;align-items:center;gap:12px;height:52px;padding:0 8px 0 16px;border:0;border-radius:14px;background:#fff;box-shadow:0 6px 20px -8px rgba(0,0,0,.45);font-weight:600;font-size:1rem;color:var(--ink)}
 .pentop svg{width:24px;height:24px}
 .pentop kbd{font:600 .9rem Inter,sans-serif;background:#eef0f4;border-radius:8px;padding:8px 12px;color:var(--muted)}
@@ -1558,7 +1561,7 @@ body.locked .am-nav,body.locked .sg-btns{visibility:hidden}
 </main>
 
 <canvas id="ink" aria-hidden="true"></canvas>
-<div class="pentop" id="penTop" hidden><button type="button" id="penStop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M4 21h16"/></svg>Steðga tekning <kbd>ESC</kbd></button></div>
+<div class="pentop" id="penTop" hidden><button type="button" id="penStop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M4 21h16"/></svg>Steðga tekning <kbd>ESC</kbd></button><button type="button" id="penFast" hidden aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/></svg><span></span></button></div>
 <div class="penbar" id="penBar" hidden role="toolbar" aria-label="Pennur">
   <div class="pb-mode"><button class="pm on" type="button" title="Tekna" aria-pressed="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 25c2-6 4-13 6.5-13 3 0-1 10 2 10 2.2 0 3.8-8 6-8 2.8 0 .5 6 3.5 6"/></svg></button><button class="pm" type="button" id="penSel" title="Vel og flyt amboð"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 5l18 8-8 3-3 8z"/></svg></button></div>
   <span class="pb-sep"></span>
@@ -1789,7 +1792,7 @@ if(!S.fl)S.fl={};
 if(S.vis&&S.vis.bok!==undefined){delete S.vis.bok;delete S.bok;}
 if(!S.pos)S.pos={};if(!S.z)S.z={};
 
-var saveT;function save(){clearTimeout(saveT);if(mtLeaving)return;undoSched();saveT=setTimeout(function(){if(mtLeaving)return;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}mtChanged();},250);}
+var saveT;function save(){if(typeof inkSync==='function')inkSync();clearTimeout(saveT);if(mtLeaving)return;undoSched();saveT=setTimeout(function(){if(mtLeaving)return;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}mtChanged();},250);}
 /* Ctrl+Z: angrisøga fyri diasið. Ein røð av broytingum stutt eftir hvørja aðra (t.d. at draga eitt amboð) verður eitt stig */
 var UNDO=[],undoLast=null,undoBusy=false,undoT=null;
 function undoSched(){clearTimeout(undoT);undoT=setTimeout(undoTrack,500);}
@@ -2822,7 +2825,7 @@ if(!S.dias)S.dias={sl:[],i:0,auto:0,fill:0};
 var diasT=0;
 function diasSrc(x){if(x.indexOf('img:')===0)return imgUrl(x.slice(4));var k=x.slice(4);return Promise.resolve(MOREBG[k]?MOREBG[k][1]:null);}
 function diasApply(){if(S.bg==='dias'&&(typeof IMGURL==='undefined'||!IMGURL)){setTimeout(diasApply,50);return;}var on=S.bg==='dias'&&S.dias.sl.length;$('#diasNav').hidden=!on;clearInterval(diasT);diasT=0;if(!on)return;
-  var D=S.dias;D.i=((D.i%D.sl.length)+D.sl.length)%D.sl.length;$('#diasN').textContent=(D.i+1)+' / '+D.sl.length;
+  var D=S.dias;D.i=((D.i%D.sl.length)+D.sl.length)%D.sl.length;$('#diasN').textContent=(D.i+1)+' / '+D.sl.length;if(typeof inkSync==='function')inkSync();
   diasSrc(D.sl[D.i]).then(function(u){if(S.bg!=='dias')return;$('#bg').style.background=u?'#111 url("'+u+'") center/'+(D.fill?'cover':'contain')+' no-repeat':'#111';});
   if(+D.auto)diasT=setInterval(function(){diasGo(1);},(+D.auto)*1000);}
 function diasGo(d){S.dias.i+=d;save();diasApply();}
@@ -4077,15 +4080,27 @@ function pgDrawD(){drawPoll();if(PSYNC)PSYNC();drawSkra();if(SKSYNC)SKSYNC();
   var pl=$('#planList');pl.innerHTML='';(S.planItems&&S.planItems.length?S.planItems:[{t:'',d:0}]).forEach(function(it){mkItem(it);});
   $('#tmrDefM').value=Math.floor(S.secs/60);$('#tmrDefS').value=S.secs%60;if(!running)setT(S.secs);
   if(typeof plUI==='function'){clearTimeout(plT);plUI();if(S.poll&&S.poll.live)plPoll();}}
-function pgKeepInk(){pgInk[S.pg]=strokes;}
-function pgShowInk(){strokes=pgInk[S.pg]||[];inkHist=[];redrawInk();}
+/* Tekningin hoyrir til diasið. Í framløgu (myndir sum bakgrund) og á PDF-síðum hoyrir hon eisini til myndina ella síðuna,
+   har hon er teknað, um ikki S.inkFylg er sett (knøtturin #penFast). inkAt = lykilin, sum tekningin á skíggjanum hoyrir til. */
+var inkAt=null;
+function inkWhere(){if(S.bg==='dias'&&S.dias&&S.dias.sl.length)return 'd';if(S.vis.pdf&&S.pdfCur&&S.pdfTwo!==3)return 'p';return '';}
+function inkKey(){var k=String(S.pg);if(S.inkFylg)return k;if(S.bg==='dias'&&S.dias&&S.dias.sl.length){var n=S.dias.sl.length;k+='|d'+(((S.dias.i%n)+n)%n);}
+  if(S.vis.pdf&&S.pdfCur&&S.pdfTwo!==3)k+='|p'+S.pdfCur+':'+(S.pdfPage||1);return k;}
+function inkFastUI(){var b=$('#penFast');if(!b)return;var w=inkWhere(),on=!S.inkFylg,hv=w==='d'?'myndini':'síðuni';b.hidden=!w;b.setAttribute('aria-pressed',on?'true':'false');
+  b.querySelector('span').textContent=on?'Tekningin verður verandi á '+hv:'Tekningin fylgir við';
+  b.title=on?'Tá ið tú blaðar, verður tekningin verandi á '+hv+'. Trýst, um hon skal fylgja við.':'Tá ið tú blaðar, fylgir tekningin við. Trýst, um hon skal verða verandi á '+hv+'.';}
+function inkSync(){if(inkAt===null||inkAt===undefined)return;inkFastUI();var k=inkKey();if(k===inkAt)return;pgInk[inkAt]=strokes;inkAt=k;strokes=pgInk[k]||[];inkHist=[];redrawInk();}
+function pgKeepInk(){if(inkAt!==null&&inkAt!==undefined)pgInk[inkAt]=strokes;else pgInk[String(S.pg)]=strokes;inkAt=null;}
+function pgShowInk(){inkAt=inkKey();strokes=pgInk[inkAt]||[];inkHist=[];redrawInk();inkFastUI();}
+inkAt=inkKey();inkFastUI();
+$('#penFast').addEventListener('click',function(){if(S.inkFylg)delete S.inkFylg;else S.inkFylg=1;inkAt=inkKey();inkFastUI();save();});
 function pgGo(i){if(i<0||i>=S.pages.length||i===S.pg)return;S.pages[S.pg]=pgSnap();pgKeepInk();S.pg=i;pgLoad(S.pages[i]);pgShowInk();save();pgUI();}
-function pgShift(from,d){var ni={};Object.keys(pgInk).forEach(function(k){var n=+k;if(n<from)ni[n]=pgInk[k];else if(d<0&&n===from){}else ni[n+d]=pgInk[k];});pgInk=ni;}
+function pgShift(from,d){var ni={};Object.keys(pgInk).forEach(function(k){var m=/^(\d+)(.*)$/.exec(k);if(!m)return;var n=+m[1];if(n<from)ni[k]=pgInk[k];else if(d<0&&n===from){}else ni[(n+d)+m[2]]=pgInk[k];});pgInk=ni;}
 function pgNew(){S.pages[S.pg]=pgSnap();pgKeepInk();var at=S.pg+1;pgShift(at,1);S.pages.splice(at,0,{vis:{},pos:{},z:{},bg:S.bg,stk:{},ytOf:{},myndOf:{},fl:{}});
   S.pg=at;pgLoad(S.pages[at]);pgShowInk();save();pgUI();}
 function pgDel(){if(S.pages.length<2)return;ask('Strika dias '+(S.pg+1)+'? Tað, sum er á hesum diasinum, verður tikið burtur.','Strika dias',pgDel2);}
 function pgDel2(){
-  var at=S.pg;S.pages.splice(at,1);pgShift(at,-1);S.pg=Math.min(at,S.pages.length-1);pgLoad(S.pages[S.pg]);pgShowInk();save();pgUI();}
+  inkAt=null;var at=S.pg;S.pages.splice(at,1);pgShift(at,-1);S.pg=Math.min(at,S.pages.length-1);pgLoad(S.pages[S.pg]);pgShowInk();save();pgUI();}
 function pgUI(){var n=S.pages.length;$('#pgN').textContent=(S.pg+1)+' / '+n;$('#pgPrev').disabled=S.pg<=0;$('#pgNext').disabled=S.pg>=n-1;$('#pgDel').hidden=n<2;}
 $('#pgPrev').addEventListener('click',function(){pgGo(S.pg-1);});$('#pgNext').addEventListener('click',function(){pgGo(S.pg+1);});
 $('#pgAdd').addEventListener('click',pgNew);$('#pgDel').addEventListener('click',pgDel);
