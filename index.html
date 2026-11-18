@@ -2409,7 +2409,23 @@ function drawStroke(st){if(st.sh){drawShape(st);return;}var P=st.p;if(!P.length)
   if(P.length===1)ictx.lineTo(P[0][0]*dpr+.1,P[0][1]*dpr);
   for(var i=1;i<P.length-1;i++){var mx=(P[i][0]+P[i+1][0])/2,my=(P[i][1]+P[i+1][1])/2;ictx.quadraticCurveTo(P[i][0]*dpr,P[i][1]*dpr,mx*dpr,my*dpr);}
   if(P.length>1)ictx.lineTo(P[P.length-1][0]*dpr,P[P.length-1][1]*dpr);ictx.stroke();ictx.globalAlpha=1;ictx.globalCompositeOperation='source-over';}
-function redrawInk(){ictx.clearRect(0,0,ink.width,ink.height);strokes.forEach(drawStroke);var ic=$('#inkClear');if(ic)ic.hidden=!strokes.length;}
+/* Ein strika, sum byrjar á einum amboði, hoyrir til amboðið (st.k = amboðið, st.r = har amboðið var, tá ið teknað varð):
+   hon flytur og broytir stødd saman við amboðnum og sæst ikki, tá ið amboðið er fjalt. Strikur á tómu talvuni standa stillar. */
+function inkRect(k){var w=document.getElementById('w-'+k);if(!w||w.hidden)return null;var r=w.getBoundingClientRect();if(r.width<2||r.height<2)return null;var ir=ink.getBoundingClientRect();return [r.left-ir.left,r.top-ir.top,r.width,r.height];}
+function inkHit(e){var best=null,bz=-1;$$('.w').forEach(function(w){if(w.hidden||w.id.indexOf('w-')!==0)return;var r=w.getBoundingClientRect();if(r.width<2||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
+    var z=+getComputedStyle(w).zIndex||0;if(z>=bz){bz=z;best=w;}});return best?best.id.slice(2):null;}
+/* Frá punkti á skíggjanum til rúmið, har strikan varð teknað; null, um amboðið er fjalt */
+function inkMap(st,RC){if(!st.k)return function(p){return p;};var c=RC&&RC[st.k]!==undefined?RC[st.k]:inkRect(st.k);if(RC)RC[st.k]=c;if(!c)return null;var r=st.r,sx=c[2]/r[2],sy=c[3]/r[3];
+  return function(p){return [(p[0]-c[0])/sx+r[0],(p[1]-c[1])/sy+r[1]];};}
+var inkWatchOn=0,inkWatchSig='';
+function inkSig(){var ks={};strokes.forEach(function(st){if(st.k)ks[st.k]=1;});var K=Object.keys(ks);if(!K.length)return null;
+  return K.map(function(k){var r=inkRect(k);return k+':'+(r?r.map(Math.round).join(','):'-');}).join('|');}
+function inkWatch(){var sig=inkSig();if(sig===null){inkWatchOn=0;return;}if(sig!==inkWatchSig)redrawInk();requestAnimationFrame(inkWatch);}
+function redrawInk(){ictx.clearRect(0,0,ink.width,ink.height);var RC={},n=0,att=0;
+  strokes.forEach(function(st){if(!st.k){drawStroke(st);n++;return;}att=1;var c=RC[st.k];if(c===undefined)c=RC[st.k]=inkRect(st.k);if(!c)return;var r=st.r;n++;
+    ictx.save();ictx.translate(c[0]*dpr,c[1]*dpr);ictx.scale(c[2]/r[2],c[3]/r[3]);ictx.translate(-r[0]*dpr,-r[1]*dpr);drawStroke(st);ictx.restore();});
+  var ic=$('#inkClear');if(ic)ic.hidden=!n;
+  if(att){inkWatchSig=inkSig();if(!inkWatchOn){inkWatchOn=1;requestAnimationFrame(inkWatch);}}}
 var inkHist=[];
 function inkSnap(){inkHist.push(strokes.slice());if(inkHist.length>80)inkHist.shift();}
 function inkUndo(){if(!inkHist.length)return false;strokes=inkHist.pop();redrawInk();return true;}
@@ -2564,9 +2580,10 @@ document.addEventListener('keydown',function(e){var D={ArrowLeft:[-1,0],ArrowRig
   save();});
 
 function inkPt(e){var r=ink.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
-function eraseAt(pt){var n=strokes.length;strokes=strokes.filter(function(st){var lim=st.w*(st.hl?3:1)/2+14;return !st.p.some(function(q){return Math.abs(q[0]-pt[0])<lim&&Math.abs(q[1]-pt[1])<lim;});});if(strokes.length!==n)redrawInk();}
+function eraseAt(pt0){var n=strokes.length,RC={};strokes=strokes.filter(function(st){var m=inkMap(st,RC);if(!m)return true;var pt=m(pt0),lim=st.w*(st.hl?3:1)/2+14;return !st.p.some(function(q){return Math.abs(q[0]-pt[0])<lim&&Math.abs(q[1]-pt[1])<lim;});});if(strokes.length!==n)redrawInk();}
 ink.addEventListener('pointerdown',function(e){if(!document.body.classList.contains('pen'))return;e.preventDefault();ink.setPointerCapture(e.pointerId);
-  var pt=inkPt(e);inkSnap();if(pen.er){eraseAt(pt);curS={er:1};return;}curS=tool==='sh'?{sh:shape,c:pen.c,w:pen.w,a:pt,b:pt,p:[pt]}:{c:pen.c,w:pen.w,hl:tool==='hl',p:[pt]};strokes.push(curS);redrawInk();});
+  var pt=inkPt(e);inkSnap();if(pen.er){eraseAt(pt);curS={er:1};return;}curS=tool==='sh'?{sh:shape,c:pen.c,w:pen.w,a:pt,b:pt,p:[pt]}:{c:pen.c,w:pen.w,hl:tool==='hl',p:[pt]};
+  var hk=inkHit(e),hr=hk&&inkRect(hk);if(hr){curS.k=hk;curS.r=hr;}strokes.push(curS);redrawInk();});
 ink.addEventListener('pointermove',function(e){if(!curS)return;var pt=inkPt(e);if(curS.er){eraseAt(pt);return;}if(curS.sh){curS.b=pt;curS.p=shapePts(curS);redrawInk();return;}
   var L=curS.p[curS.p.length-1];if(Math.abs(L[0]-pt[0])+Math.abs(L[1]-pt[1])<1.5)return;curS.p.push(pt);
   if(curS.hl)redrawInk();else{strokeStyle(curS);ictx.beginPath();ictx.moveTo(L[0]*dpr,L[1]*dpr);ictx.lineTo(pt[0]*dpr,pt[1]*dpr);ictx.stroke();}});
