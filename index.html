@@ -2807,7 +2807,10 @@ function openPdf(buf,keep){$('#pdfEmpty').hidden=true;
     if(!keep){S.pdfPage=1;S.pdfZoom=1;}S.pdfPage=Math.max(1,Math.min(S.pdfPage||1,doc.numPages));save();pdfUI();setTimeout(renderPdf,0);})
   .catch(function(){pdfDoc=null;pdfUI();note('Tað bar ikki til at lesa PDF-fíluna.');});}
 function renderPdf(){if(!pdfDoc||!S.vis.pdf||$('#w-pdf').hidden)return;if(S.pdfTwo===3){renderScroll();return;}if(pdfIO){pdfIO.disconnect();pdfIO=null;}$('#pdfPages').classList.remove('scroll');
-  var N=pdfDoc.numPages,n=S.pdfPage,list=[n];if(S.pdfTwo===2&&n+1<=N)list.push(n+1);
+  var N=pdfDoc.numPages,n=S.pdfPage;
+  /* Tvær síður: altíð pør sum í eini bók (1–2, 3–4 …), so síða 2 ikki stendur einsamøll */
+  if(S.pdfTwo===2&&n>1&&n%2===0){n-=1;S.pdfPage=n;}
+  var list=[n];if(S.pdfTwo===2&&n+1<=N)list.push(n+1);
   $('#pdfN').textContent=(list.length>1?n+'–'+(n+1):n)+' / '+N;$('#pdfPrev').disabled=n<=1;$('#pdfNext').disabled=n+S.pdfTwo>N;
   var view=$('#pdfView'),W=view.clientWidth-24,H=view.clientHeight-24,gen=++pdfGen;if(W<50||H<50)return;
   var cx=view.scrollWidth>view.clientWidth?(view.scrollLeft+view.clientWidth/2)/view.scrollWidth:.5,cy=view.scrollHeight>view.clientHeight?(view.scrollTop+view.clientHeight/2)/view.scrollHeight:.5;
