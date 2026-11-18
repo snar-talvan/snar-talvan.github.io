@@ -289,7 +289,7 @@ body.pdfback #w-pdf .w-body{padding:0}
 body.pdfback #w-pdf .pdf-view{background:transparent;max-height:none;min-height:0}
 .pdf-tools.pdf-float{position:fixed;left:14px;top:80px;z-index:19;padding:5px 8px;background:#fff;border:0;border-radius:14px;box-shadow:0 6px 20px -8px rgba(0,0,0,.45)}
 .pdf-float #pdfBack{background:var(--ink);color:#fff;border-radius:10px;padding:0 14px}
-body.pen .pdf-float{display:none}
+body.pen .pdf-tools.pdf-float{top:78px}
 body.pdfback #w-pdf .w-rs{display:none}
 body.pdfback #w-pdf .w-head{cursor:default}
 
@@ -833,7 +833,7 @@ html:not(.ready) #grid,html:not(.ready) .dock,html:not(.ready) .top{visibility:h
 .dias-nav button:hover{background:var(--soft)}
 .dias-nav #diasStop{font-size:1.4rem;color:var(--muted)}
 .dias-nav span{min-width:60px;text-align:center;font-weight:700;font-size:.95rem}
-body.pen .dias-nav{display:none}
+body.pen .dias-nav{bottom:150px}
 /* Tekstur: litir og krem */
 .txbg-k{background:#fdf8e6}
 .tx.txcol,.tx.txcol .tx-t{color:var(--txc)}
@@ -2614,7 +2614,15 @@ document.addEventListener('keydown',function(e){var D={ArrowLeft:[-1,0],ArrowRig
 
 function inkPt(e){var r=ink.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top];}
 function eraseAt(pt0){var n=strokes.length,RC={};strokes=strokes.filter(function(st){var m=inkMap(st,RC);if(!m)return true;var pt=m(pt0),lim=st.w*(st.hl?3:1)/2+14;return !st.p.some(function(q){return Math.abs(q[0]-pt[0])<lim&&Math.abs(q[1]-pt[1])<lim;});});if(strokes.length!==n)redrawInk();}
-ink.addEventListener('pointerdown',function(e){if(!document.body.classList.contains('pen'))return;e.preventDefault();ink.setPointerCapture(e.pointerId);
+/* Knøttar undir teknilagnum, sum skulu virka, meðan pennurin er frammi: blaða í diasum, framløgu og PDF */
+var PEN_THRU='#pgPrev,#pgNext,#diasPrev,#diasNext,#pdfTools button';
+function penUnder(e){var L=document.elementsFromPoint(e.clientX,e.clientY);for(var i=0;i<L.length;i++)if(L[i]!==ink)return L[i];return null;}
+function penThrough(e){var x=penUnder(e),b=x&&x.closest?x.closest(PEN_THRU):null;return b&&!b.disabled?b:null;}
+ink.addEventListener('pointermove',function(e){if(curS||!document.body.classList.contains('pen'))return;ink.style.cursor=penThrough(e)?'pointer':'';});
+/* Hjólið á músini rullar PDF-skjalið undir teknilagnum */
+ink.addEventListener('wheel',function(e){if(!document.body.classList.contains('pen'))return;var x=penUnder(e),v=x&&x.closest?x.closest('.pdf-view'):null;if(!v)return;
+  var m=e.deltaMode===1?32:e.deltaMode===2?v.clientHeight:1;v.scrollTop+=e.deltaY*m;v.scrollLeft+=e.deltaX*m;},{passive:true});
+ink.addEventListener('pointerdown',function(e){if(!document.body.classList.contains('pen'))return;var thru=penThrough(e);if(thru){e.preventDefault();thru.click();return;}e.preventDefault();ink.setPointerCapture(e.pointerId);
   var pt=inkPt(e);inkSnap();if(pen.er){eraseAt(pt);curS={er:1};return;}curS=tool==='sh'?{sh:shape,c:pen.c,w:pen.w,a:pt,b:pt,p:[pt]}:{c:pen.c,w:pen.w,hl:tool==='hl',p:[pt]};
   var hk=inkHit(e)||'@',hr=inkRect(hk);if(hr){curS.k=hk;curS.r=hr;}strokes.push(curS);redrawInk();});
 ink.addEventListener('pointermove',function(e){if(!curS)return;var pt=inkPt(e);if(curS.er){eraseAt(pt);return;}if(curS.sh){curS.b=pt;curS.p=shapePts(curS);redrawInk();return;}
