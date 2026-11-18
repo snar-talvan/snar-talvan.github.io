@@ -283,15 +283,6 @@ body.focus .jar{max-width:min(460px,40cqi)}
 .pdf-pages{display:flex;gap:12px;padding:12px;width:max-content;min-width:100%;min-height:100%;justify-content:center;align-items:center;box-sizing:border-box}
 .pdf-pages canvas{display:block;background:#fff;box-shadow:0 8px 24px -12px rgba(32,33,36,.4);flex:none}
 /* Legg aftast: PDF'urin fyllir borðið og liggur aftanfyri hini amboðini */
-body.pdfback #w-pdf{left:0!important;top:0!important;width:100%!important;height:100%!important;z-index:1!important;border:0;box-shadow:none;background:transparent;min-height:0}
-body.pdfback #w-pdf .w-head{display:none}
-body.pdfback #w-pdf .w-body{padding:0}
-body.pdfback #w-pdf .pdf-view{background:transparent;max-height:none;min-height:0}
-.pdf-tools.pdf-float{position:fixed;left:14px;top:80px;z-index:19;padding:5px 8px;background:#fff;border:0;border-radius:14px;box-shadow:0 6px 20px -8px rgba(0,0,0,.45)}
-.pdf-float #pdfBack{background:var(--ink);color:#fff;border-radius:10px;padding:0 14px}
-body.pen .pdf-tools.pdf-float{top:78px}
-body.pdfback #w-pdf .w-rs{display:none}
-body.pdfback #w-pdf .w-head{cursor:default}
 
 /* ---------- Ljóðmátari ---------- */
 .noise{flex:1;display:flex;flex-direction:column;gap:14px;justify-content:center}
@@ -436,7 +427,7 @@ body.dark .top-logo{background:#fff;padding:0 14px}
 .w-head .ic{width:42px;height:42px;border-radius:10px;color:var(--ink)}
 .w-head .ic svg{width:21px;height:21px}
 .w-head h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0}
-.w.tbin .w-head,.w.big .w-head,body.pdfback #w-pdf .w-head{bottom:auto;top:calc(10px * var(--isc));left:auto;right:calc(10px * var(--isc));margin:0;transform:scale(var(--isc));transform-origin:100% 0}
+.w.tbin .w-head,.w.big .w-head{bottom:auto;top:calc(10px * var(--isc));left:auto;right:calc(10px * var(--isc));margin:0;transform:scale(var(--isc));transform-origin:100% 0}
 /* Prikkar í hornunum */
 .w .w-rs{position:absolute;display:none;width:calc(20px * var(--isc));height:calc(20px * var(--isc));border-radius:50%;background:#fff;border:calc(3px * var(--isc)) solid var(--blue);box-sizing:border-box;z-index:9;touch-action:none}
 .w.sel .w-rs{display:block}
@@ -447,7 +438,7 @@ body.dark .top-logo{background:#fff;padding:0 14px}
 /* Fyll skíggjan: bjálkin sæst altíð, í miðjuni ovast, so hann ikki fjalist undir knøttunum í hornunum */
 body.focus .w.big .w-head{display:flex;left:50%;right:auto;top:calc(14px * var(--isc));bottom:auto;margin:0;transform:translateX(-50%) scale(var(--isc));transform-origin:50% 0}
 body.focus .w.big .big-btn{background:var(--ink);color:#fff;border-radius:10px}
-body.focus .w.big .w-rs,body.pdfback #w-pdf .w-rs,body.locked .w-rs{display:none!important}
+body.focus .w.big .w-rs,body.locked .w-rs{display:none!important}
 body.focus .w.big{border-radius:0}
 .w .edit-note,.w .note#pickLeft:empty{display:none}
 
@@ -895,9 +886,7 @@ body.pen .dias-nav{bottom:150px}
 .tv-ths button span{width:38px;height:38px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 .tv-ths button[aria-pressed=true]{border-color:var(--blue)}
 body.dark .top{background:none!important;border:0!important}
-body.pdfback #w-pdf{top:calc(80px * var(--isc))!important;height:calc(100% - 80px * var(--isc))!important}
 body.focus .w.big{top:calc(80px * var(--isc))!important;height:calc(100% - 80px * var(--isc))!important}
-.pdf-tools.pdf-float{left:50%;top:14px;transform:translateX(-50%);max-width:calc(100vw - 480px);overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;white-space:nowrap}
 .pdf-pages.scroll{flex-direction:column;justify-content:flex-start;gap:14px;padding:12px 20px}
 .pdf-pg{flex:none;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .pdf-pg canvas{display:block}
@@ -1487,7 +1476,6 @@ body.locked .am-nav,body.locked .sg-btns{visibility:hidden}
               <button type="button" data-pp="2" aria-pressed="false">Tvær síður</button>
               <button type="button" data-pp="3" aria-pressed="false">Rulla</button>
             </div>
-            <button class="pt-b pt-txt cfg" type="button" id="pdfBack" aria-pressed="false">Legg aftast</button>
             <button class="pt-b pt-txt cfg" type="button" id="pdfNew">Vel PDF</button>
           </div>
           <div class="pdf-view" id="pdfView"><div class="pdf-pages" id="pdfPages"></div></div>
@@ -1874,7 +1862,7 @@ function setupW(w){
     front(k);select(k);},true);
   /* Flyt: drag hvar sum helst á amboðinum, har einki annað hendir */
   w.addEventListener('pointerdown',function(e){
-    if(e.button!==0||S.lock||w.classList.contains('big')||(k==='pdf'&&S.pdfBack)||e.target.closest(NODRAG))return;
+    if(e.button!==0||S.lock||w.classList.contains('big')||e.target.closest(NODRAG))return;
     e.preventDefault();var p=pos(k),sx=e.clientX,sy=e.clientY,ox=p[0],oy=p[1],on=false;
     var grp=MSEL.length>1&&MSEL.indexOf(k)>=0?MSEL.filter(function(x){return x!==k;}).map(function(x){return [x,pos(x).slice()];}):[];
     function mv(ev){var dx=(ev.clientX-sx)/SC,dy=(ev.clientY-sy)/SC;if(!on&&Math.abs(dx)+Math.abs(dy)<4)return;
@@ -2787,19 +2775,15 @@ var PDFJS='pdfjs/';
 var PDF_MAXPX=8e6,PDF_MAXDIM=4096;
 var PMISS={};
 var pdfDoc=null,pdfTasks=[],pdfBusy=false,pdfGen=0;
-if(S.bg==='pdf'){S.bg='strik';S.vis.pdf=1;S.pdfBack=1;}
+if(S.bg==='pdf'){S.bg='strik';S.vis.pdf=1;}
+/* „Legg aftast“ er tikið burtur (18.11.2026): eitt PDF-skjal, sum lá aftast, er aftur eitt vanligt amboð á talvuni */
+if(S.pdfBack!==undefined)delete S.pdfBack;if(S.pages)S.pages.forEach(function(p){if(p&&p.pdfBack!==undefined)delete p.pdfBack;});
 if(!S.pdfTwo)S.pdfTwo=1;if(!S.pdfZoom)S.pdfZoom=1;
 function pdfLib(){return new Promise(function(res,rej){if(window.pdfjsLib)return res(window.pdfjsLib);var sc=document.createElement('script');sc.src=PDFJS+'pdf.min.js';sc.integrity='sha512-q+4liFwdPC/bNdhUpZx6aXDx/h77yEQtn4I1slHydcbZK34nLaR3cAeYSJshoxIOq3mjEf7xJE8YWIUHMn+oCQ==';
   sc.onload=function(){window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS+'pdf.worker.min.js';res(window.pdfjsLib);};sc.onerror=rej;document.head.appendChild(sc);});}
 function idb(mode,fn){return new Promise(function(res){try{var rq=indexedDB.open('snar-flokskiggi',1);rq.onupgradeneeded=function(){rq.result.createObjectStore('f');};
   rq.onsuccess=function(){try{var tx=rq.result.transaction('f',mode),st=tx.objectStore('f'),r=fn(st);tx.oncomplete=function(){res(r&&r.result);};tx.onerror=function(){res(null);};}catch(e){res(null);}};rq.onerror=function(){res(null);};}catch(e){res(null);}});}
 function pdfUI(){var has=!!pdfDoc;$('#pdfEmpty').hidden=has;$('#pdfWrap').hidden=!has;
-  var back=!!(S.pdfBack&&S.vis.pdf&&has);document.body.classList.toggle('pdfback',back);
-  /* Aftast: PDF-bjálkin verður fljótandi í erva til vinstru, omanfyri øll amboðini, so tú altíð kanst bláa og leggja PDF'in fremst aftur */
-  var tools=$('#pdfTools');if(back&&tools.parentNode!==document.body)document.body.appendChild(tools);
-  else if(!back&&tools.parentNode===document.body)$('#pdfWrap').insertBefore(tools,$('#pdfWrap').firstChild);
-  tools.classList.toggle('pdf-float',back);
-  var bb=$('#pdfBack');bb.setAttribute('aria-pressed',S.pdfBack?'true':'false');bb.textContent=S.pdfBack?'Legg fremst':'Legg aftast';
   $$('[data-pp]').forEach(function(b){b.setAttribute('aria-pressed',+b.dataset.pp===S.pdfTwo?'true':'false')});
   $('#pdfFit').textContent=Math.round(S.pdfZoom*100)+' %';$('#pdfOut').disabled=S.pdfZoom<=.41;$('#pdfIn').disabled=S.pdfZoom>=4.9;pdfMissUI();}
 function openPdf(buf,keep){$('#pdfEmpty').hidden=true;
@@ -2852,7 +2836,7 @@ $('#pdfIn').addEventListener('click',function(){pdfZoom(S.pdfZoom*1.25)});
 $('#pdfOut').addEventListener('click',function(){pdfZoom(S.pdfZoom/1.25)});
 $('#pdfFit').addEventListener('click',function(){pdfZoom(1)});
 $$('[data-pp]').forEach(function(b){b.addEventListener('click',function(){S.pdfTwo=+b.dataset.pp;save();pdfUI();renderPdf();})});
-$('#pdfBack').addEventListener('click',function(){S.pdfBack=S.pdfBack?0:1;if(S.pdfBack&&document.body.classList.contains('focus'))unfocus();save();pdfUI();setTimeout(renderPdf,0);});
+
 $('#pdfPick').addEventListener('click',function(){$('#pdfFile').click()});
 $('#pdfNew').addEventListener('click',function(){openSet('pdf')});
 $('#pdfFile').addEventListener('change',function(e){var f=e.target.files[0];e.target.value='';if(!f)return;
@@ -4120,7 +4104,7 @@ Object.keys(S.stk).forEach(function(id){if(S.stk[id].t==='tilv'&&!$('#w-'+id))mk
 
 
 /* ---------- Dias: fleiri talvur, hvør við sínum amboðum, plásum, klistrimerkjum og bakgrund ---------- */
-var PGK=['vis','pos','z','bg','stk','ytOf','myndOf','snar','snar2','snar3','tema','fl','pdfBack','pdfCur','pdfPage','look'];
+var PGK=['vis','pos','z','bg','stk','ytOf','myndOf','snar','snar2','snar3','tema','fl','pdfCur','pdfPage','look'];
 /* Spurnarkanning, stopptíð og ætlan hoyra hvørjum diasi til (frá 16.11.2026) */
 var PGD=['poll','skra','secs','planItems'];
 function pgDef(k){return k==='poll'?{q:'Hvussu dámdi tær tíman í dag?',t:'s',n:4,o:['Svar 1','Svar 2','Svar 3'],c:'kaka',th:0,v:[]}
