@@ -2411,9 +2411,17 @@ function drawStroke(st){if(st.sh){drawShape(st);return;}var P=st.p;if(!P.length)
   if(P.length>1)ictx.lineTo(P[P.length-1][0]*dpr,P[P.length-1][1]*dpr);ictx.stroke();ictx.globalAlpha=1;ictx.globalCompositeOperation='source-over';}
 /* Ein strika, sum byrjar á einum amboði, hoyrir til amboðið (st.k = amboðið, st.r = har amboðið var, tá ið teknað varð):
    hon flytur og broytir stødd saman við amboðnum og sæst ikki, tá ið amboðið er fjalt. Strikur á tómu talvuni standa stillar. */
-function inkRect(k){var w=k==='@'?document.getElementById('grid'):document.getElementById('w-'+k);if(!w||(k!=='@'&&w.hidden))return null;var r=w.getBoundingClientRect();if(r.width<2||r.height<2)return null;var ir=ink.getBoundingClientRect();return [r.left-ir.left,r.top-ir.top,r.width,r.height];}
+function pdfPgEl(n){var box=document.getElementById('pdfPages');if(!box)return null;for(var i=0;i<box.children.length;i++){var c=box.children[i];if(c.dataset&&+c.dataset.p===n)return c;}return null;}
+function inkBox(el){var r=el.getBoundingClientRect();if(r.width<2||r.height<2)return null;var ir=ink.getBoundingClientRect();return [r.left-ir.left,r.top-ir.top,r.width,r.height];}
+/* Strikur á eini PDF-síðu síggjast bert innan fyri PDF-vindeygað */
+function inkClip(k){if(k.indexOf('pdf:')!==0)return null;var v=document.getElementById('pdfView');return v?inkBox(v):null;}
+function inkRect(k){if(k.indexOf('pdf:')===0){var q=k.split(':'),pw=document.getElementById('w-pdf');if(!S.vis.pdf||S.pdfCur!==q[1]||!pw||pw.hidden)return null;var pe=pdfPgEl(+q[2]);return pe?inkBox(pe):null;}
+  var w=k==='@'?document.getElementById('grid'):document.getElementById('w-'+k);if(!w||(k!=='@'&&w.hidden))return null;var r=w.getBoundingClientRect();if(r.width<2||r.height<2)return null;var ir=ink.getBoundingClientRect();return [r.left-ir.left,r.top-ir.top,r.width,r.height];}
 function inkHit(e){var best=null,bz=-1;$$('.w').forEach(function(w){if(w.hidden||w.id.indexOf('w-')!==0)return;var r=w.getBoundingClientRect();if(r.width<2||e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)return;
-    var z=+getComputedStyle(w).zIndex||0;if(z>=bz){bz=z;best=w;}});return best?best.id.slice(2):null;}
+    var z=+getComputedStyle(w).zIndex||0;if(z>=bz){bz=z;best=w;}});if(!best)return null;
+  if(best.id==='w-pdf'&&S.pdfCur){var box=document.getElementById('pdfPages'),hit=null;if(box)for(var i=0;i<box.children.length;i++){var c=box.children[i];if(!c.dataset||!c.dataset.p)continue;var q=c.getBoundingClientRect();
+      if(e.clientX>=q.left&&e.clientX<=q.right&&e.clientY>=q.top&&e.clientY<=q.bottom){hit=c.dataset.p;break;}}if(hit)return 'pdf:'+S.pdfCur+':'+hit;}
+  return best.id.slice(2);}
 /* Frá punkti á skíggjanum til rúmið, har strikan varð teknað; null, um amboðið er fjalt */
 function inkMap(st,RC){if(!st.k)return function(p){return p;};var c=RC&&RC[st.k]!==undefined?RC[st.k]:inkRect(st.k);if(RC)RC[st.k]=c;if(!c)return null;var r=st.r,sx=c[2]/r[2],sy=c[3]/r[3];
   return function(p){return [(p[0]-c[0])/sx+r[0],(p[1]-c[1])/sy+r[1]];};}
@@ -2435,7 +2443,7 @@ function inkSig(){var ks={};strokes.forEach(function(st){if(st.k)ks[st.k]=1;});v
 function inkWatch(){var sig=inkSig();if(sig===null){inkWatchOn=0;return;}if(sig!==inkWatchSig)redrawInk();requestAnimationFrame(inkWatch);}
 function redrawInk(){ictx.clearRect(0,0,ink.width,ink.height);var RC={},n=0,att=0;
   strokes.forEach(function(st){if(!st.k){drawStroke(st);n++;return;}att=1;var c=RC[st.k];if(c===undefined)c=RC[st.k]=inkRect(st.k);if(!c)return;var r=st.r;n++;
-    ictx.save();ictx.translate(c[0]*dpr,c[1]*dpr);ictx.scale(c[2]/r[2],c[3]/r[3]);ictx.translate(-r[0]*dpr,-r[1]*dpr);drawStroke(st);ictx.restore();});
+    ictx.save();var cl=inkClip(st.k);if(cl){ictx.beginPath();ictx.rect(cl[0]*dpr,cl[1]*dpr,cl[2]*dpr,cl[3]*dpr);ictx.clip();}ictx.translate(c[0]*dpr,c[1]*dpr);ictx.scale(c[2]/r[2],c[3]/r[3]);ictx.translate(-r[0]*dpr,-r[1]*dpr);drawStroke(st);ictx.restore();});
   var ic=$('#inkClear');if(ic)ic.hidden=!n;inkStore();
   if(att){inkWatchSig=inkSig();if(!inkWatchOn){inkWatchOn=1;requestAnimationFrame(inkWatch);}}}
 var inkHist=[];
@@ -2789,7 +2797,7 @@ function renderPdf(){if(!pdfDoc||!S.vis.pdf||$('#w-pdf').hidden)return;if(S.pdfT
     var cs=pgs.map(function(pg){var v0=pg.getViewport({scale:sc}),mx=Math.min(dp,Math.sqrt(PDF_MAXPX/(v0.width*v0.height)),PDF_MAXDIM/Math.max(v0.width,v0.height));var d=Math.max(.5,mx);
       var vp=pg.getViewport({scale:sc*d}),c=document.createElement('canvas');c.width=Math.floor(vp.width);c.height=Math.floor(vp.height);
       c.style.width=(vp.width/d)+'px';c.style.height=(vp.height/d)+'px';var t=pg.render({canvasContext:c.getContext('2d'),viewport:vp});pdfTasks.push(t);return t.promise.then(function(){return c;});});
-    Promise.all(cs).then(function(cv){if(gen!==pdfGen)return;var box=$('#pdfPages');box.innerHTML='';cv.forEach(function(c){box.appendChild(c)});
+    Promise.all(cs).then(function(cv){if(gen!==pdfGen)return;var box=$('#pdfPages');box.innerHTML='';cv.forEach(function(c,i){c.dataset.p=list[i];box.appendChild(c)});
       view.scrollLeft=cx*view.scrollWidth-view.clientWidth/2;view.scrollTop=cy*view.scrollHeight-view.clientHeight/2;}).catch(function(e){if(e&&e.name==='RenderingCancelledException')return;console.warn('PDF',e);pdfFail();});}).catch(function(e){console.warn('PDF',e);pdfFail();});}
 function pdfFail(){var box=$('#pdfPages');box.innerHTML='<p class="pdf-fail">Tað bar ikki til at vísa hesa síðuna. Royn at gera PDF\'in minni við −.</p>';}
 /* Rulla: allar síður undir hvørjari aðrari; bert síðurnar nær skíggjanum verða teknaðar, aðrar verða slepptar aftur */
@@ -4112,9 +4120,8 @@ function pgDrawD(){drawPoll();if(PSYNC)PSYNC();drawSkra();if(SKSYNC)SKSYNC();
 /* Tekningin hoyrir til diasið. Í framløgu (myndir sum bakgrund) og á PDF-síðum hoyrir hon eisini til myndina ella síðuna,
    har hon er teknað, um ikki S.inkFylg er sett (knøtturin #penFast). inkAt = lykilin, sum tekningin á skíggjanum hoyrir til. */
 var inkAt=null;
-function inkWhere(){if(S.bg==='dias'&&S.dias&&S.dias.sl.length)return 'd';if(S.vis.pdf&&S.pdfCur&&S.pdfTwo!==3)return 'p';return '';}
-function inkKey(){var k=String(S.pg);if(S.inkFylg)return k;if(S.bg==='dias'&&S.dias&&S.dias.sl.length){var n=S.dias.sl.length;k+='|d'+(((S.dias.i%n)+n)%n);}
-  if(S.vis.pdf&&S.pdfCur&&S.pdfTwo!==3)k+='|p'+S.pdfCur+':'+(S.pdfPage||1);return k;}
+function inkWhere(){return S.bg==='dias'&&S.dias&&S.dias.sl.length?'d':'';}
+function inkKey(){var k=String(S.pg);if(S.inkFylg)return k;if(S.bg==='dias'&&S.dias&&S.dias.sl.length){var n=S.dias.sl.length;k+='|d'+(((S.dias.i%n)+n)%n);}return k;}
 function inkFastUI(){var b=$('#penFast');if(!b)return;var w=inkWhere(),on=!S.inkFylg,hv=w==='d'?'myndini':'síðuni';b.hidden=!w;b.setAttribute('aria-pressed',on?'true':'false');
   b.querySelector('span').textContent=on?'Tekningin verður verandi á '+hv:'Tekningin fylgir við';
   b.title=on?'Tá ið tú blaðar, verður tekningin verandi á '+hv+'. Trýst, um hon skal fylgja við.':'Tá ið tú blaðar, fylgir tekningin við. Trýst, um hon skal verða verandi á '+hv+'.';}
