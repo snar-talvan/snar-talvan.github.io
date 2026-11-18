@@ -2921,7 +2921,13 @@ function idbAll(){return new Promise(function(res){try{var rq=indexedDB.open('sn
   rq.onsuccess=function(){var out=[];try{var c=rq.result.transaction('f','readonly').objectStore('f').openCursor();c.onsuccess=function(){var cur=c.result;if(cur){out.push([cur.key,cur.value]);cur.continue();}else res(out);};c.onerror=function(){res(out);};}catch(e){res(out);}};rq.onerror=function(){res([]);};}catch(e){res([]);}});}
 $('#expBtn').addEventListener('click',function(){var withF=$('#expFiles').checked,msg=$('#expMsg');msg.textContent='Talvan verður gjørd klár …';
   try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
-  (withF?idbAll():Promise.resolve([])).then(function(rows){return Promise.all(rows.map(function(r){var v=r[1];
+  /* Bert tað, sum hoyrir til talvuna á skíggjanum: myndir, PDF-skjøl, smámyndir og myndatøkur, sum talvan vísir til, og hennara egna tekning.
+     Aðrar talvur (talva:, tbase:) og teirra tekningar verða ikki tiknar við. */
+  var expJ=JSON.stringify(S);
+  function expMine(k){k=String(k);var i=k.indexOf(':');if(i<1)return false;var pre=k.slice(0,i),id=k.slice(i+1);if(!id)return false;
+    if(pre==='ink')return typeof S.inkId==='string'&&id===S.inkId;
+    if(pre==='img'||pre==='pdf'||pre==='pth'||pre==='cam')return expJ.indexOf(id)>=0;return false;}
+  (withF?idbAll():Promise.resolve([])).then(function(rows){return Promise.all(rows.filter(function(r){return expMine(r[0]);}).map(function(r){var v=r[1];
       if(v instanceof ArrayBuffer)return {k:r[0],t:'ab',d:ab64(v)};
       if(v instanceof Blob)return v.arrayBuffer().then(function(b){return {k:r[0],t:'blob',m:v.type,d:ab64(b)};});
       return {k:r[0],t:'v',d:v};}));})
