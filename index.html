@@ -865,6 +865,9 @@ body.pen .dias-nav{display:none}
 .tv-hjol{padding-top:3cqi}
 .tv-wheel{flex:1;min-height:0;width:100%;display:grid;place-items:center;cursor:pointer}
 .tv-wsvg{height:100%;max-height:100%;max-width:100%;aspect-ratio:1}
+.tv-wsvg path,.tv-wsvg text{transition:fill .5s}
+.tv-wsvg path.tv-off{fill:#e3e6eb}
+.tv-wsvg text.tv-off{fill:#a7aeb9}
 .tv-rot{transform-origin:100px 100px;transition:transform 3.2s cubic-bezier(.15,.7,.15,1)}
 .tv-res{min-height:1.2em;font-weight:800;font-size:clamp(1rem,7cqi,2.6rem);text-align:center}
 .tv-hjol .tv-go{position:absolute;right:4cqi;bottom:4cqi;width:clamp(40px,11cqi,72px);height:clamp(40px,11cqi,72px)}
@@ -3521,12 +3524,13 @@ var TVSUG=[['Tøl 1–10',Array.from({length:10},function(_,i){return i+1})],['T
 if(!S.lists)S.lists=[];
 function tvItems(d){return String(d.items||'').split(/\r?\n/).map(function(x){return x.trim()}).filter(Boolean);}
 var SHUF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3.5c4 0 6 10 10 10H21M18 14l3 3-3 3M3 17h3.5c1.6 0 2.8-1.6 3.9-3.6M13.6 9.6C14.7 8 15.8 7 17.5 7H21M18 4l3 3-3 3"/></svg>';
+function tvOff(d,t,nu){var U=d.once?(d.used||[]):[];return U.indexOf(t)>=0&&t!==(nu===undefined?U[U.length-1]:nu);}
 function wheelSvg(d){var L=tvItems(d).slice(0,60),n=L.length||1,P=(TVTH[d.th]||TVTH.litrikt)[4],s='<svg viewBox="-4 -4 208 208" class="tv-wsvg"><g class="tv-rot" style="transform:rotate('+(d.rot||0)+'deg)">';
   if(!L.length)s+='<circle cx="100" cy="100" r="96" fill="#e5e7eb"/>';
   L.forEach(function(t,i){var a0=i/n*2*Math.PI,a1=(i+1)/n*2*Math.PI,x0=100+96*Math.cos(a0),y0=100+96*Math.sin(a0),x1=100+96*Math.cos(a1),y1=100+96*Math.sin(a1);
-    s+='<path d="M100 100L'+x0.toFixed(2)+' '+y0.toFixed(2)+'A96 96 0 '+(a1-a0>Math.PI?1:0)+' 1 '+x1.toFixed(2)+' '+y1.toFixed(2)+'Z" fill="'+P[i%P.length]+'" stroke="#fff" stroke-width="1.2"/>';
+    s+='<path d="M100 100L'+x0.toFixed(2)+' '+y0.toFixed(2)+'A96 96 0 '+(a1-a0>Math.PI?1:0)+' 1 '+x1.toFixed(2)+' '+y1.toFixed(2)+'Z" fill="'+P[i%P.length]+'" stroke="#fff" stroke-width="1.2"'+(tvOff(d,t)?' class="tv-off"':'')+'/>';
     var am=(i+.5)/n*360,fs=Math.max(5,Math.min(13,300/n,120/Math.max(4,String(t).length)));
-    s+='<text transform="rotate('+am.toFixed(2)+' 100 100) translate(160 100)" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="'+fs.toFixed(1)+'" fill="#1f2937">'+esc(String(t).slice(0,16))+'</text>';});
+    s+='<text transform="rotate('+am.toFixed(2)+' 100 100) translate(160 100)" text-anchor="middle" dominant-baseline="middle" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="'+fs.toFixed(1)+'" fill="#1f2937"'+(tvOff(d,t)?' class="tv-off"':'')+'>'+esc(String(t).slice(0,16))+'</text>';});
   return s+'<circle cx="100" cy="100" r="12" fill="#fff" stroke="#1f2937" stroke-width="2"/></g><path d="M188 100l18-10v20z" fill="#1f2937"/></svg>';}
 
 
@@ -3876,7 +3880,7 @@ STK.morgun={n:'Felags uppgáva',sz:[760,420],set:1,lib:false,tool:1,r:function(d
     +'<div class="mu-b">'+(q[2]?'<button type="button" data-mu="sv">'+(d.sv?'Fjal svarið':'Vís svarið')+'</button>':'')+'<button type="button" data-mu="nyggj">Ein onnur</button></div></div>';},
   after:function(id,b){$$('[data-mu]',b).forEach(function(x){x.addEventListener('click',function(){var d=S.stk[id];if(x.dataset.mu==='sv'){if(d.sv)delete d.sv;else d.sv=1;}else{d.off=(d.off||0)+1;delete d.sv;}save();drawStk(id);});});}};
 STK.morgun.settings=function(id,d,sec){
-  sec.innerHTML='<div class="set-row"><h4>Hvørt stig?</h4><div class="seg tx-seg" id="muDl">'+Object.keys(MUD).map(function(k){return '<button type="button" data-v="'+k+'" aria-pressed="'+((d.dl||'m')===k?'true':'false')+'">'+MUD[k]+'</button>'}).join('')+'</div></div>'
+  sec.innerHTML='<div class="set-row"><h4>Vel stig</h4><div class="seg tx-seg" id="muDl">'+Object.keys(MUD).map(function(k){return '<button type="button" data-v="'+k+'" aria-pressed="'+((d.dl||'m')===k?'true':'false')+'">'+MUD[k]+'</button>'}).join('')+'</div></div>'
    +'<div class="set-row"><h4>Slag av uppgávum</h4><div class="seg tx-seg mu-cats" id="muCat">'+[['','Øll']].concat(Object.keys(MUS).map(function(k){return [k,MUS[k][0]]})).map(function(x){return '<button type="button" data-v="'+x[0]+'" aria-pressed="'+((d.cat||'')===x[0]?'true':'false')+'">'+x[1]+'</button>'}).join('')+'</div></div>'
    +'<div class="set-row"><h4>Tínar egnu uppgávur</h4><textarea class="set-in" id="muOwn" rows="5" placeholder="Ein uppgáva á hvørjari linju. Svarið kann standa aftaná | &#10;Hvat er 9 · 9? | 81"></textarea>'
    +'<label class="chk"><input type="checkbox" id="muOnly"> Bert mínar egnu uppgávur</label></div>'
@@ -3902,7 +3906,7 @@ STK.mark={n:'Morgunark',sz:[520,440],set:1,lib:false,tool:1,r:function(d){var u=
   after:function(id,b){var d=S.stk[id];$$('[data-mk]',b).forEach(function(x){x.addEventListener('click',function(){var k=x.dataset.mk;window.open(mkUrl(S.stk[id],k!=='open',k==='v5'?5:0),'_blank');});});
     if(d&&!d.noQr&&!window.qrcode)qrLoad(function(){if(window.qrcode)drawStk(id);});}};
 STK.mark.settings=function(id,d,sec){
-  sec.innerHTML='<div class="set-row"><h4>Hvørt stig?</h4><div class="seg tx-seg" id="mkDl">'+Object.keys(MKD).map(function(k){return '<button type="button" data-v="'+k+'" aria-pressed="'+((d.dl||'m')===k?'true':'false')+'">'+MKD[k]+'</button>'}).join('')+'</div></div>'
+  sec.innerHTML='<div class="set-row"><h4>Vel stig</h4><div class="seg tx-seg" id="mkDl">'+Object.keys(MKD).map(function(k){return '<button type="button" data-v="'+k+'" aria-pressed="'+((d.dl||'m')===k?'true':'false')+'">'+MKD[k]+'</button>'}).join('')+'</div></div>'
    +'<div class="set-row"><label class="chk"><input type="checkbox" id="mkQr"> Vís QR-kotu til iPad</label></div>'
    +'<p class="note">Tað eru 200 ørk, eitt til hvønn skúladag (talt frá 1. august). Átta sløg av uppgávum skiftast: rokning, sudoku, villiniborg, tabellvenjing, tekna eftir prikkum, orðaleiting, klokkan og lesa og skriva. Á pappírinum eru linjur og kassar, og á iPadinum kunnu næmingarnir skriva og tekna á skíggjanum.</p>';
   $$('#mkDl button',sec).forEach(function(b){b.addEventListener('click',function(){d.dl=b.dataset.v;$$('#mkDl button',sec).forEach(function(z){z.setAttribute('aria-pressed',z===b?'true':'false')});save();drawStk(id);});});
@@ -3992,7 +3996,8 @@ function tvPick(id){var d=S.stk[id],L=tvItems(d);if(tvBusy[id])return;if(!L.leng
   var pool=L;if(d.once){d.used=(d.used||[]).filter(function(x){return L.indexOf(x)>=0});pool=L.filter(function(x){return d.used.indexOf(x)<0});if(!pool.length){d.used=[];pool=L;}}
   var pick=pool[rnd(pool.length)];if(d.once)d.used.push(pick);tvBusy[id]=1;
   if((d.des||'std')==='hjol'){var n2=Math.min(L.length,60),i2=L.indexOf(pick);if(i2>=n2)i2=0;var c=(i2+.5)/n2*360,cur=d.rot||0,target=-c,delta=((target-cur)%360+360)%360;
-    d.rot=cur+360*5+delta;var g=b.querySelector('.tv-rot'),res=b.querySelector('.tv-res');res.textContent='';g.style.transform='rotate('+d.rot+'deg)';
+    d.rot=cur+360*5+delta;var g=b.querySelector('.tv-rot'),res=b.querySelector('.tv-res');res.textContent='';
+    var wp=g.querySelectorAll('path'),wt=g.querySelectorAll('text');for(var q=0;q<n2;q++){var off=tvOff(d,L[q],pick);if(wp[q])wp[q].classList.toggle('tv-off',off);if(wt[q])wt[q].classList.toggle('tv-off',off);}g.style.transform='rotate('+d.rot+'deg)';
     var ticks=0,tk=setInterval(function(){if(++ticks>22){clearInterval(tk);return;}tvTick(d,1300);},140);
     setTimeout(function(){clearInterval(tk);d.cur=pick;tvBusy[id]=0;res.textContent=pick;res.classList.add('pop');tvTick(d,900);save();},3300);return;}
   var out=b.querySelector('.tv-out'),steps=0,max=14;
@@ -4031,7 +4036,7 @@ STK.tilv.settings=function(id,d,sec){var tab=sec.dataset.tvtab||'lista';
   $('#tvGn').addEventListener('change',function(){d.gn=Math.max(2,Math.min(15,+this.value||3));upd();});
   $$('.tv-des button',sec).forEach(function(b){b.addEventListener('click',function(){d.des=b.dataset.des;upd();})});
   $$('.tv-ths button',sec).forEach(function(b){b.addEventListener('click',function(){d.th=b.dataset.th;upd();})});
-  $('#tvSnd').addEventListener('change',function(){d.snd=this.checked?1:0;save();});$('#tvOnce').addEventListener('change',function(){d.once=this.checked?1:0;d.used=[];save();});
+  $('#tvSnd').addEventListener('change',function(){d.snd=this.checked?1:0;save();});$('#tvOnce').addEventListener('change',function(){d.once=this.checked?1:0;d.used=[];save();drawStk(id);});
   $('#tvReset').addEventListener('click',function(){d.used=[];d.cur=null;d.grp=null;upd();});
   sync();};
 /* Gomlu Nøvn verða til Tilvild (einaferð) */
