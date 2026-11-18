@@ -757,8 +757,10 @@ body.pen .dock{display:none}
 .dk-min{min-width:44px!important;width:44px;padding:0!important;align-self:center;height:44px;border-radius:12px}
 .dk-min svg{width:22px!important;height:22px!important;stroke-width:1.8!important}
 .dock.mini .dk:not(#penBtn):not(#dockMin):not(#inkClear),.dock.mini .dk-sep{display:none!important}
-.dock.mini{padding:6px 8px}
+.dock.mini{padding:6px 8px;height:auto;align-items:center}
 .dock.mini #penBtn span{display:none}
+.dock.mini #penBtn{min-width:44px;width:44px;height:44px;padding:0;justify-content:center}
+.dock.mini #penBtn svg{width:26px;height:26px}
 /* Krukkan: glas við loki, bandi og pílu, pastellkúlur við smiley, eingin hvítur kassi */
 #w-glas{background:transparent;box-shadow:none}
 #w-glas.sel{box-shadow:0 0 0 calc(3px * var(--isc)) var(--blue)}
