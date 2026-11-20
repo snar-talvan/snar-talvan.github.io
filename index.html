@@ -2305,10 +2305,12 @@ TEMU.forEach(function(g){g[1].forEach(function(f){f[2]='https://snar.fo'+f[1];})
 var SNAR_OK=/^(snar\.fo|www\.snar\.fo|snardev\.ctrl\.fo|katof\.github\.io|snarportal\.github\.io)$/i;
 function norm(t){return (t||'').toLowerCase();}
 /* Ein og sama kota til bæði amboðini: k = lykil í S, p = byrjanin á id-unum */
+var SNW=[];
 function snarW(o){var k=o.k,p=o.p;function q(id){return $('#'+p+id);}
+  SNW.push(function(){if(!S[k])drawList(q('Q').value);});
   function drawList(qs){var box=q('List'),nq=norm(qs.trim()),hits=0;box.innerHTML='';
     o.list.forEach(function(g){var items=g[1].filter(function(f){return !nq||norm(f[0]).split(/[\s\/–-]+/).some(function(w){return w.indexOf(nq)===0})||norm(f[0]).indexOf(nq)===0;});
-      if(!items.length)return;hits+=items.length;var sec=el('div','sn-grp','<h3>'+g[0]+'</h3>'),row=el('div');
+      if(!items.length)return;hits+=items.length;var sec=el('div','sn-grp','<h3>'+esc(g[0])+'</h3>'),row=el('div');
       items.forEach(function(f){var b=el('button','sn-item');b.type='button';b.textContent=f[0];b.addEventListener('click',function(){open(f[2],f[0],'https://snar.fo'+f[1]);});row.appendChild(b);});
       sec.appendChild(row);box.appendChild(sec);});
     var m=q('Msg');if(!hits&&nq){m.hidden=false;m.textContent=o.none;}else m.hidden=true;
@@ -2336,6 +2338,25 @@ function snarW(o){var k=o.k,p=o.p;function q(id){return $('#'+p+id);}
     b.addEventListener('click',function(){S[k]=null;save();show();setTimeout(function(){q('Q').focus()},50);});})();
   q('Frame').addEventListener('load',function(){q('View').classList.remove('loading');});
   show();SW[k]={show:show};}
+/* Funkur-amboðið fylgir snar.fo/funkur: funkur.json verður gjørd av dagfor-funkur.py úr kortunum á snar.fo/funkur.
+   Tá ið hon er heintað og sær røtt út, vísir amboðið somu bólkar og funkur sum Snar. Funkur, sum bert eru í Talvuni
+   (jólakalendararnir), verða verandi fremst. Bregst heintingin, verður innbygdi listin omanfyri brúktur. */
+function funkurLei(p){try{return decodeURIComponent(p).replace(/\/$/,'');}catch(e){return p;}}
+function funkurOk(u){var x;try{x=new URL(u);}catch(e){return false;}return x.protocol==='https:'&&SNAR_OK.test(x.hostname)&&okUrl(u);}
+function funkurNytt(d){if(!d||!Array.isArray(d.bolkar))return;var old={},new_=[],n=0,sett={};
+  FUNKUR.forEach(function(g){g[1].forEach(function(f){old[funkurLei(f[1])]=f;});});
+  d.bolkar.slice(0,20).forEach(function(b){if(!Array.isArray(b)||typeof b[0]!=='string'||!Array.isArray(b[1]))return;var L=[];
+    b[1].slice(0,80).forEach(function(f){if(!Array.isArray(f)||typeof f[0]!=='string'||typeof f[1]!=='string'||typeof f[2]!=='string')return;
+      var h=f[0].replace(/\s+-\s+/g,' – ').replace(/\s+/g,' ').trim().slice(0,80),pth=f[1],lei=funkurLei(pth),u=f[2],o=old[lei];
+      if(!h||pth.charAt(0)!=='/'||pth.charAt(1)==='/'||/[\s"'<>]/.test(pth)||sett[lei])return;
+      /* eingin Funku-ramma funnin á síðuni: brúka fíluna, Talvan kennir frammanundan */
+      if(o&&u==='https://snar.fo'+pth)u=o[2];
+      if(!funkurOk(u))return;sett[lei]=1;L.push([h,pth,u]);n++;});
+    if(L.length)new_.push([b[0].replace(/\s+/g,' ').trim().slice(0,60)||'Funkur',L]);});
+  if(n<15)return;
+  var eftir=[];FUNKUR.forEach(function(g){var L=g[1].filter(function(f){return !sett[funkurLei(f[1])];});if(L.length)eftir.push([g[0],L]);});
+  FUNKUR.length=0;eftir.concat(new_).forEach(function(g){FUNKUR.push(g);});SNW.forEach(function(f){try{f();}catch(e){}});}
+try{fetch('funkur.json',{cache:'no-cache'}).then(function(r){return r.ok?r.json():null;}).then(funkurNytt).catch(function(){});}catch(e){}
 snarW({k:'snar',p:'sn',list:FUNKUR,head:'Funkur',back:'Vel eina aðra funku',none:'Eingin funka var at finna. Royn eitt annað orð, ella lím eina leinkju frá Snar inn.'});
 ['snar2','snar3'].forEach(function(k,i){snarW({k:k,p:'s'+(i+2),list:FUNKUR,head:'Funkur',back:'Vel eina aðra funku',none:'Eingin funka var at finna. Royn eitt annað orð, ella lím eina leinkju frá Snar inn.'});});
 snarW({k:'tema',p:'tm',list:TEMU,head:'Tema',back:'Vel eina aðra temasíðu',none:'Einki tema var at finna. Royn eitt annað orð, ella lím eina leinkju frá Snar inn.'});
