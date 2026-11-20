@@ -2024,7 +2024,12 @@ function p2(n){return (n<10?'0':'')+n}
     pn+='<line x1="'+(100+r1*Math.sin(b)).toFixed(2)+'" y1="'+(100-r1*Math.cos(b)).toFixed(2)+'" x2="'+(100+90*Math.sin(b)).toFixed(2)+'" y2="'+(100-90*Math.cos(b)).toFixed(2)+'" stroke="#202124" stroke-width="'+(q?8:5)+'" stroke-linecap="butt"/>';
     s+='<text x="'+(100+66*Math.sin(b)).toFixed(2)+'" y="'+(100-66*Math.cos(b)+6.5).toFixed(2)+'" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="19" fill="#202124">'+h+'</text>';}
   $('#nums').innerHTML=s;$('#pins').innerHTML=pn;})();
-function tick(){var d=new Date(),h=d.getHours(),m=d.getMinutes(),sec=d.getSeconds();
+/* Talvan vísir altíð føroyska tíð (Atlantic/Faroe), eisini um teldan er sett til eina aðra tíðarsonu.
+   nu() gevur eina dagfesting, har getHours(), getDate() o.s.fr. svara til klokkuna og dagin í Føroyum. */
+var FOTID=null;try{FOTID=new Intl.DateTimeFormat('en-GB',{timeZone:'Atlantic/Faroe',hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric'});FOTID.formatToParts(new Date());}catch(e){FOTID=null;}
+function nu(){var d=new Date();if(!FOTID)return d;try{var o={};FOTID.formatToParts(d).forEach(function(p){o[p.type]=+p.value;});
+    var r=new Date(o.year,o.month-1,o.day,o.hour%24,o.minute,o.second,d.getMilliseconds());return isNaN(r.getTime())?d:r;}catch(e){return d;}}
+function tick(){var d=nu(),h=d.getHours(),m=d.getMinutes(),sec=d.getSeconds();
   $('#clockT').innerHTML=p2(h)+':'+p2(m)+'<small>'+p2(sec)+'</small>';
   $('#hH').setAttribute('transform','rotate('+((h%12)*30+m*.5)+' 100 100)');
   $('#hM').setAttribute('transform','rotate('+(m*6+sec*.1)+' 100 100)');
@@ -2045,7 +2050,7 @@ function klVis(){return (S.pages||[]).some(function(p,i){return i===S.pg?S.vis.k
 function klSorted(){return S.klAl.list.filter(function(x){return x.t}).slice().sort(function(a,b){return a.t<b.t?-1:a.t>b.t?1:0});}
 /* Kortið á klokkuni vísir næstu tíð í dag */
 function klChip(){var a=S.klAl,c=$('#klAlChip'),L=klSorted();if(!a.on||!L.length){c.hidden=true;return;}
-  var d=new Date(),hm=p2(d.getHours())+':'+p2(d.getMinutes()),nx=L.filter(function(x){return x.t>=hm})[0];
+  var d=nu(),hm=p2(d.getHours())+':'+p2(d.getMinutes()),nx=L.filter(function(x){return x.t>=hm})[0];
   c.hidden=false;c.textContent=nx?'🔔 '+(L.length>1?'Næst ':'')+nx.t.replace(':','.')+' · '+(nx.txt||'Tímin er liðugur'):'🔔 Ikki meira í dag';}
 function klDraw(){var box=$('#klAlList');box.innerHTML='';
   S.klAl.list.forEach(function(it,i){var r=el('div','kl-al-it');
@@ -2070,7 +2075,7 @@ function klRing(it){klBell();var o=$('#klRingDlg');if(!o){o=el('div','kl-ring');
     document.body.appendChild(o);o.querySelector('button').addEventListener('click',function(){o.hidden=true;});o.addEventListener('click',function(e){if(e.target===o)o.hidden=true;});}
   o.querySelector('.kl-ring-t').textContent=it.txt||'Tímin er liðugur';o.querySelector('.kl-ring-k').textContent=it.t?'kl. '+it.t.replace(':','.'):'';o.hidden=false;
   clearTimeout(klRing.t);klRing.t=setTimeout(function(){o.hidden=true;},120000);}
-setInterval(function(){var a=S.klAl;if(!a||!a.on)return;var d=new Date(),hm=p2(d.getHours())+':'+p2(d.getMinutes());
+setInterval(function(){var a=S.klAl;if(!a||!a.on)return;var d=nu(),hm=p2(d.getHours())+':'+p2(d.getMinutes());
   if(d.getSeconds()===0)klChip();
   a.list.forEach(function(it){var k=d.toDateString()+' '+it.t;if(it.t===hm&&!klFired[k]&&klVis()){klFired[k]=1;klRing(it);klChip();}});},1000);
 klUI();
@@ -3097,7 +3102,7 @@ var SKSYNC=null,PSYNC;
 function skMin(t){var m=/^(\d{1,2}):(\d{2})/.exec(t||'');return m?(+m[1])*60+(+m[2]):480;}
 function skFmt(x){x=((Math.round(x)%1440)+1440)%1440;return Math.floor(x/60)+':'+p2(x%60);}
 function drawSkra(){var K=S.skra,ul=$('#skL'),fr=K.m==='frii';$('#skT').textContent=K.t||'';ul.innerHTML='';ul.hidden=fr;$('#plan').hidden=!fr;if(fr)return;
-  var d=new Date(),now=d.getHours()*60+d.getMinutes()+d.getSeconds()/60,t0=skMin(K.st);
+  var d=nu(),now=d.getHours()*60+d.getMinutes()+d.getSeconds()/60,t0=skMin(K.st);
   K.it.forEach(function(a,i){var li=el('li','sk-it');var s=t0,e;for(var j=0;j<i;j++)s+=(+K.it[j].d||0);e=s+(+a.d||0);
     var ic=el('span','sk-ic',a.ic?esc(a.ic):'+');if(!a.ic)ic.classList.add('none');li.appendChild(ic);
     var m=el('div','sk-m');m.appendChild(el('b',null,''));m.firstChild.textContent=a.n||'Virksemi';
@@ -3629,7 +3634,7 @@ function dgKey(t){return t.getFullYear()+'-'+(t.getMonth()+1)+'-'+t.getDate();}
 function dgSeason(m){return m===11||m<2?'vetur':m<5?'var':m<8?'summar':'heyst';}
 function dgW(k){for(var i=0;i<DGW.length;i++)if(DGW[i][0]===k)return DGW[i];return null;}
 function dgLog(d){if(!d.log)d.log={};if(d.w&&d.wd){d.log[d.wd]=d.w;}delete d.w;delete d.wd;return d.log;}
-STK.dagur={n:'Dagurin í dag',sz:[600,520],set:1,lib:false,tool:1,r:function(d){var t=new Date(),k=dgKey(t),L=dgLog(d),se=dgSeason(t.getMonth()),w=dgW(L[k]);
+STK.dagur={n:'Dagurin í dag',sz:[600,520],set:1,lib:false,tool:1,r:function(d){var t=nu(),k=dgKey(t),L=dgLog(d),se=dgSeason(t.getMonth()),w=dgW(L[k]);
   var th=DDTH[d.th||'']||DDTH[''],bg=th[1]?'background:linear-gradient(160deg,'+th[1][0]+','+th[1][1]+')':'';
   var y=new Date(t.getTime()-864e5),m=new Date(t.getTime()+864e5),h='<div class="dday dday-'+se+(d.th==='myrk'?' dday-dark':'')+'" style="'+bg+'">';
   h+='<div class="dday-k">Í dag er</div><div class="dday-d">'+DGD[t.getDay()]+'</div><div class="dday-n">'+t.getDate()+'. '+DGM[t.getMonth()]+(d.noY?'':' '+t.getFullYear())+'</div>';
@@ -3642,9 +3647,9 @@ STK.dagur={n:'Dagurin í dag',sz:[600,520],set:1,lib:false,tool:1,r:function(d){
     h+='</div>';}
   if(!d.noYT)h+='<div class="dday-yt">Í gjár var '+DGD[y.getDay()]+' · Í morgin verður '+DGD[m.getDay()]+'</div>';
   return h+'</div>';},
-  after:function(id,b){$$('[data-dgw]',b).forEach(function(x){x.addEventListener('click',function(){var d=S.stk[id],L=dgLog(d),k=dgKey(new Date());if(L[k]===x.dataset.dgw)delete L[k];else L[k]=x.dataset.dgw;save();drawStk(id);
+  after:function(id,b){$$('[data-dgw]',b).forEach(function(x){x.addEventListener('click',function(){var d=S.stk[id],L=dgLog(d),k=dgKey(nu());if(L[k]===x.dataset.dgw)delete L[k];else L[k]=x.dataset.dgw;save();drawStk(id);
     if(SETK===id&&!$('#setPanel').hidden)openStkSet(id);});});}};
-STK.dagur.settings=function(id,d,sec){var L=dgLog(d),t=new Date(),o=[['noS','Vís árstíðina'],['noY','Vís árið'],['noWk','Vís veðrið hesa vikuna'],['noYT','Vís í gjár og í morgin']];
+STK.dagur.settings=function(id,d,sec){var L=dgLog(d),t=nu(),o=[['noS','Vís árstíðina'],['noY','Vís árið'],['noWk','Vís veðrið hesa vikuna'],['noYT','Vís í gjár og í morgin']];
   var cnt={},tot=0;Object.keys(L).forEach(function(k){var p=k.split('-');if(+p[0]===t.getFullYear()&&+p[1]===t.getMonth()+1){cnt[L[k]]=(cnt[L[k]]||0)+1;tot++;}});
   var mx=Math.max.apply(null,[1].concat(Object.keys(cnt).map(function(k){return cnt[k]})));
   var h='<div class="set-row"><h4>Litur</h4><div class="stkpals dday-ths">'+Object.keys(DDTH).map(function(k){var c=DDTH[k][1];return '<button type="button" class="stkpal" data-ddth="'+k+'" aria-pressed="'+((d.th||'')===k?'true':'false')+'"><span class="sp-dots">'+(c?'<i style="width:26px;height:18px;border-radius:6px;background:linear-gradient(160deg,'+c[0]+','+c[1]+')"></i>':'<i style="background:#bfdbfe"></i><i style="background:#bbf7d0"></i><i style="background:#fde68a"></i><i style="background:#fed7aa"></i>')+'</span><small>'+DDTH[k][0]+'</small></button>'}).join('')+'</div></div>';
@@ -3656,15 +3661,15 @@ STK.dagur.settings=function(id,d,sec){var L=dgLog(d),t=new Date(),o=[['noS','Ví
   $$('[data-o]',sec).forEach(function(x){x.addEventListener('change',function(){if(x.checked)delete d[x.dataset.o];else d[x.dataset.o]=1;save();drawStk(id);});});
   $('[data-ddclr]',sec).addEventListener('click',function(){ask('Strika alt veðrið, sum er skrivað upp á hesum kortinum?','Strika',function(){d.log={};save();drawStk(id);openStkSet(id);});});};
 /* Skift dag um midnátt */
-var DGLAST=dgKey(new Date());
-setInterval(function(){var k=dgKey(new Date());if(k===DGLAST)return;DGLAST=k;Object.keys(S.stk).forEach(function(id){if(S.stk[id].t==='dagur')drawStk(id);});},60000);
+var DGLAST=dgKey(nu());
+setInterval(function(){var k=dgKey(nu());if(k===DGLAST)return;DGLAST=k;Object.keys(S.stk).forEach(function(id){if(S.stk[id].t==='dagur')drawStk(id);});},60000);
 
 
 
 /* ---------- Røklaskipan: hvør er røkil hesa vikuna? Roknað eftir vikunum í skúlaárinum ---------- */
 function rkMon(t){var d=new Date(t.getFullYear(),t.getMonth(),t.getDate());d.setDate(d.getDate()-((d.getDay()+6)%7));return d;}
 function rkWeek(t){var d=new Date(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate())),n=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-n);var y=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil(((d-y)/864e5+1)/7);}
-function rkStart(d){if(d.start){var p=d.start.split('-').map(Number);if(p.length===3)return rkMon(new Date(p[0],p[1]-1,p[2]));}var t=new Date(),y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1;return rkMon(new Date(y,7,1));}
+function rkStart(d){if(d.start){var p=d.start.split('-').map(Number);if(p.length===3)return rkMon(new Date(p[0],p[1]-1,p[2]));}var t=nu(),y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1;return rkMon(new Date(y,7,1));}
 function rkNames(d){return (d.items||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);}
 function rkJobs(d){return (d.jobs||'').split('\n').map(function(x){return x.trim();}).filter(Boolean);}
 function rkPer(d){var J=rkJobs(d);return J.length||Math.max(1,Math.min(6,d.per||2));}
@@ -3677,7 +3682,7 @@ var RKTH={gront:['Grønt','linear-gradient(160deg,#f0fdf4,#dcfce7)','#15803d','#
   reytt:['Reytt','linear-gradient(160deg,#fff1f2,#fecdd3)','#be123c','#9f1239','#fff'],hvitt:['Hvítt','#ffffff','#1f2937','#475569','#f1f5f9'],
   myrkt:['Myrkt','linear-gradient(160deg,#1e293b,#0f172a)','#fde68a','#cbd5e1','#334155'],krit:['Krittalva','linear-gradient(160deg,#2f4f3a,#1f3a2a)','#fefce8','#d9f99d','rgba(255,255,255,.1)']};
 function rkStyle(d){var t=RKTH[d.th]||RKTH.gront;return ' style="--rk-bg:'+t[1]+';--rk-ac:'+t[2]+';--rk-sub:'+t[3]+';--rk-card:'+t[4]+';--rk-fs:'+(d.fs||1)+'"';}
-STK.rokil={n:'Røklaskipan',sz:[560,380],set:1,lib:false,tool:1,r:function(d){var t=new Date(),now=rkFor(d,t),nx=rkFor(d,new Date(t.getTime()+6048e5)),J=rkJobs(d);
+STK.rokil={n:'Røklaskipan',sz:[560,380],set:1,lib:false,tool:1,r:function(d){var t=nu(),now=rkFor(d,t),nx=rkFor(d,new Date(t.getTime()+6048e5)),J=rkJobs(d);
   var cls='rk'+(d.lay==='listi'?' rk-list':'')+((d.th==='myrkt'||d.th==='krit')?' rk-dark':''),st=rkStyle(d);
   var head=d.noH&&d.noW?'':'<div class="rk-h">'+(d.noH?'<b></b>':'<b>'+esc(d.ti||((now.length>1?'Røklar':'Røkil')+' hesa vikuna'))+'</b>')+(d.noW?'':'<span>Vika '+rkWeek(t)+'</span>')+'</div>';
   if(!now.length)return '<div class="'+cls+'"'+st+'>'+head+'<button type="button" class="rk-empty" data-rk-set>Skriva nøvnini á næmingunum í flokkinum</button></div>';
@@ -3686,7 +3691,7 @@ STK.rokil={n:'Røklaskipan',sz:[560,380],set:1,lib:false,tool:1,r:function(d){va
     +(d.noNx?'':'<div class="rk-nx">Næstu viku: '+esc(rkJoin(nx))+'</div>')+'</div>';},
   after:function(id,b){var e=b.querySelector('[data-rk-set]');if(e)e.addEventListener('click',function(){openStkSet(id);});}};
 function rkYear(d){var st=rkStart(d),rows=[],t;for(var i=0;i<46;i++){t=new Date(st.getFullYear(),st.getMonth(),st.getDate()+7*i);var f=new Date(t.getFullYear(),t.getMonth(),t.getDate()+4);
-  rows.push([rkWeek(t),t.getDate()+'. '+DGM[t.getMonth()].slice(0,3)+'. – '+f.getDate()+'. '+DGM[f.getMonth()].slice(0,3)+'.',rkFor(d,t),rkMon(new Date()).getTime()===t.getTime()]);}return rows;}
+  rows.push([rkWeek(t),t.getDate()+'. '+DGM[t.getMonth()].slice(0,3)+'. – '+f.getDate()+'. '+DGM[f.getMonth()].slice(0,3)+'.',rkFor(d,t),rkMon(nu()).getTime()===t.getTime()]);}return rows;}
 var RKTAB='rk';
 STK.rokil.settings=function(id,d,sec){var L=rkNames(d),J=rkJobs(d),st=rkStart(d),iso=st.getFullYear()+'-'+String(st.getMonth()+1).padStart(2,'0')+'-'+String(st.getDate()).padStart(2,'0');
   var h='<div class="set-tabs" role="tablist"><button type="button" role="tab" data-rkt="rk" aria-selected="'+(RKTAB==='rk')+'">Røklar</button><button type="button" role="tab" data-rkt="ut" aria-selected="'+(RKTAB==='ut')+'">Útsjónd</button></div>'
@@ -3949,7 +3954,7 @@ var MUD={g:'Byrjanarstig',m:'Miðstig',h:'Hástig'};
 function muList(d){var L=(MU[d.dl||'m']||MU.m).filter(function(x){return !d.cat||x[0]===d.cat;});
   (d.own||'').split('\n').forEach(function(l){l=l.trim();if(!l)return;var p=l.split('|');if(!d.cat||d.cat==='e')L.push(['e',p[0].trim(),(p[1]||'').trim()]);});
   if(d.only&&d.own)L=L.filter(function(x){return x[0]==='e';});return L.length?L:(MU[d.dl||'m']);}
-function muPick(d){var t=new Date(),k=dgKey(t);if(d.day!==k){d.day=k;d.off=0;delete d.sv;}var L=muList(d),h=0,str=k+(d.dl||'m')+(d.cat||'');for(var i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))>>>0;return L[(h+(d.off||0))%L.length];}
+function muPick(d){var t=nu(),k=dgKey(t);if(d.day!==k){d.day=k;d.off=0;delete d.sv;}var L=muList(d),h=0,str=k+(d.dl||'m')+(d.cat||'');for(var i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))>>>0;return L[(h+(d.off||0))%L.length];}
 STK.morgun={n:'Felags uppgáva',sz:[760,420],set:1,lib:false,tool:1,r:function(d){var q=muPick(d),c=MUS[q[0]]||MUS.r;
   return '<div class="mu" style="--mc:'+c[1]+'"><div class="mu-h"><span class="mu-ti">Felags uppgáva</span><span class="mu-chip">'+c[0]+'</span></div>'
     +'<div class="mu-q">'+esc(q[1]).replace(/\n/g,'<br>')+'</div>'
@@ -3972,7 +3977,7 @@ STK.morgun.settings=function(id,d,sec){
 var MKD={g:'Byrjanarstig',m:'Miðstig',h:'Hástig'};
 /* Sama teljing sum í morgunark.html: skúladagur nr. frá 1. august (mánadagar–fríggjadagar), 200 ørk og átta sløg */
 var MKK=['Rokning','Sudoku','Villiniborg','Tabellvenjing','Tekna eftir prikkum','Orðaleiting','Klokkan','Lesa og skriva'];
-function mkNum(){var t=new Date();t=new Date(t.getFullYear(),t.getMonth(),t.getDate());var y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1,d=new Date(y,7,1),n=0;while(d<=t){var w=d.getDay();if(w>0&&w<6)n++;d.setDate(d.getDate()+1);}return Math.max(1,((n-1)%200)+1);}
+function mkNum(){var t=nu();t=new Date(t.getFullYear(),t.getMonth(),t.getDate());var y=t.getMonth()>=7?t.getFullYear():t.getFullYear()-1,d=new Date(y,7,1),n=0;while(d<=t){var w=d.getDay();if(w>0&&w<6)n++;d.setDate(d.getDate()+1);}return Math.max(1,((n-1)%200)+1);}
 /* Á netinum leiða QR-kotan og knøttarnir til snar.fo/talvan/morgunark (ikki til GitHub); lokalt til fíluna við síðuna av */
 function mkUrl(d,pr,v){var q='dl='+(d.dl||'m')+(pr?'&print=1':'')+(v?'&v='+v:'');if(/github\.io$|snar\.fo$/.test(location.hostname))return 'https://snar.fo/talvan/morgunark#'+q;return location.href.split('#')[0].split('?')[0].replace(/[^\/]*$/,'')+'morgunark.html?'+q;}
 STK.mark={n:'Morgunark',sz:[520,440],set:1,lib:false,tool:1,r:function(d){var u=mkUrl(d),qr=!d.noQr;
